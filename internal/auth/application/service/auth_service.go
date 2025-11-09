@@ -23,12 +23,14 @@ var (
 
 type AuthService struct {
 	userRepo   repository.UserRepository
+	sessionRepo repository.SessionRepository
 	jwtSecret  string
 }
 
-func NewAuthService(userRepo repository.UserRepository, jwtSecret string) *AuthService {
+func NewAuthService(userRepo repository.UserRepository, sessionRepo repository.SessionRepository, jwtSecret string) *AuthService {
 	return &AuthService{
 		userRepo:  userRepo,
+		sessionRepo: sessionRepo,
 		jwtSecret: jwtSecret,
 	}
 }
@@ -75,7 +77,6 @@ func (s *AuthService) Register(email, password, name string) (*model.User, error
 	return user, nil
 }
 
-// Login - Iniciar sesión
 func (s *AuthService) Login(email, password string) (accessToken, refreshToken string, err error) {
 	// 1. Buscar user por email con userRepo.FindByEmail()
 	user, err := s.userRepo.FindByEmail(email)
@@ -97,6 +98,18 @@ func (s *AuthService) Login(email, password string) (accessToken, refreshToken s
 	refreshToken = uuid.New().String()
 
 	// 4. Guardar refreshToken en tabla sessions
+	session := &model.Session{
+		ID: uuid.New().String(),
+		UserID: user.ID,
+		RefreshToken: refreshToken,
+		ExpiresAt: time.Now().Add(7 * 24 * time.Hour), // 7 días
+		CreatedAt: time.Now(),
+	}
+
+	if err = s.sessionRepo.Create(session); err != nil {
+		return "", "", err
+	}
+
 	return accessToken, refreshToken, nil
 }
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"go-task-easy-list/config"
+	"go-task-easy-list/internal/shared/infrastructure"
 	"log"
 	"net/http"
 	"os"
@@ -20,19 +21,40 @@ func main() {
 	if err != nil {
 		log.Fatal("Error cargando config:", err)
 	}
+
+	db, err := config.InitDatabase(cfg.DBPath)
+	if err != nil {
+		log.Fatal("Error inicializando base de datos:", err)
+	}
 	log.Println("Base de datos conectada")
 
+	// Dependency Injection Container
+	container := infrastructure.NewContainer(db, cfg.JWTSecret)
+
 	r := chi.NewRouter()
-	r.Use(middleware.Logger)
+	// r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("OK"))
 	})
 
+	// Registrar todas las rutas de los módulos
+	container.RegisterRoutes(r)
+
+	// Server
 	addr := fmt.Sprintf(":%s", cfg.Port)
-	log.Printf("🚀 Servidor corriendo en http://localhost%s\n", addr)
-	log.Fatal(http.ListenAndServe(addr, r))
+	server := &http.Server{
+		Addr:    addr,
+		Handler: r,
+	}
+
+	go gracefulShutdown(server)
+
+	log.Printf("Servidor escuchando en http://localhost%s\n", addr)
+	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		log.Fatal("Error del servidor:", err)
+	}
 }
 
 func gracefulShutdown(server *http.Server) {
