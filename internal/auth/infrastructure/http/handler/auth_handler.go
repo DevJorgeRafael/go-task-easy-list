@@ -7,7 +7,6 @@ import (
 	sharedhttp "go-task-easy-list/internal/shared/http"
 	"net/http"
 
-
 	"github.com/go-playground/validator/v10"
 )
 
@@ -35,9 +34,10 @@ type LoginRequest struct {
 }
 
 type AuthResponse struct {
-	User interface{} `json:"user"`
-	AccessToken string `json:"accessToken"`
-	RefreshToken string `json:"refreshToken"`
+	User         interface{} `json:"user"`
+	AccessToken  string      `json:"accessToken"`
+	RefreshToken string      `json:"refreshToken"`
+	Message      string      `json:"message"`
 }
 
 // Register - POST /api/auth/register
@@ -74,19 +74,41 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	accessToken, refreshToken, err := h.authService.Login(req.Email, req.Password)
+	user, accessToken, refreshToken, sessionRemoved, err := h.authService.Login(req.Email, req.Password)
 	if err != nil {
 		sharedhttp.ErrorResponse(w, http.StatusUnauthorized, "Credenciales inválidas")
 		return
 	}
 
+	message := ""
+	if sessionRemoved {
+		message = "Se cerró tu sesión más antigua porque alcanzaste el límite de 3 sesiones activas."
+	}
+
 	response := AuthResponse{
-		User:        nil,
-		AccessToken: accessToken,
+		User:         user,
+		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
+		Message:      message,
 	}
 
 	sharedhttp.SuccessResponse(w, http.StatusOK, response)
+}
+
+func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	// Extraer userId del contexto (establecido por el middleware)
+	userID, ok := r.Context().Value("userId").(string)
+	if !ok {
+		sharedhttp.ErrorResponse(w, http.StatusUnauthorized, "Usuario no autenticado")
+		return
+	}
+
+	if err := h.authService.Logout(userID); err != nil {
+		sharedhttp.ErrorResponse(w, http.StatusInternalServerError, "Error al cerrar sesión")
+		return
+	}
+
+	sharedhttp.SuccessResponse(w, http.StatusOK, map[string]string{"message": "Sesión cerrada exitosamente"})
 }
 
 func formatValidationError(err error) string {
@@ -106,18 +128,54 @@ func formatValidationError(err error) string {
 	return "Datos inválidos"
 }
 
-func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
-	// Extraer userId del contexto (establecido por el middleware)
+// ---------------------------- Refresh Token ---------------------------- //
+type RefreshRequest struct {
+	RefreshRequest string `json:"refreshToken" validate:"required"`
+}
+
+type RefreshResponse struct {
+	AccessToken string `json:"accessToken"`
+}
+
+// RefreshToken - POST /api/auth/refresh
+func (h *AuthHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
+	var req RefreshRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		sharedhttp.ErrorResponse(w, http.StatusBadRequest, "JSON inválido")
+		return
+	}
+
+	if err := h.validator.Struct(req); err != nil {
+		sharedhttp.ErrorResponse(w, http.StatusBadRequest, formatValidationError(err))
+		return
+	}
+
+	accessToken, err := h.authService.RefreshToken(req.RefreshRequest)
+	if err != nil {
+		sharedhttp.ErrorResponse(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	response := RefreshResponse{
+		AccessToken: accessToken,
+	}
+
+	sharedhttp.SuccessResponse(w, http.StatusOK, response)
+}
+
+// GetSessions - GET /api/auth/sessions
+func (h *AuthHandler) GetSessions(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value("userId").(string)
 	if !ok {
 		sharedhttp.ErrorResponse(w, http.StatusUnauthorized, "Usuario no autenticado")
 		return
 	}
 
-	if err := h.authService.Logout(userID); err != nil {
-		sharedhttp.ErrorResponse(w, http.StatusInternalServerError, "Error al cerrar sesión")
+	sessions, err := h.authService.GetActiveSessions(userID)
+	if err != nil {
+		sharedhttp.ErrorResponse(w, http.StatusInternalServerError, "Error al obtener sesiones")
 		return
 	}
 
-	sharedhttp.SuccessResponse(w, http.StatusOK, map[string]string{"message": "Sesión cerrada exitosamente"})
+	sharedhttp.SuccessResponse(w, http.StatusOK, sessions)
 }

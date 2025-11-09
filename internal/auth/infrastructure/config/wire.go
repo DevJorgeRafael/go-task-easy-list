@@ -36,11 +36,13 @@ func (m *AuthModule) RegisterRoutes(r chi.Router, authMiddleware *middleware.Aut
 		// Rutas públicas sin autenticación
 		r.Post("/register", m.Handler.Register)
 		r.Post("/login", m.Handler.Login)
+		r.Post("/refresh", m.Handler.RefreshToken)
 
 		// Rutas protegidas (requiren JWT)
 		r.Group(func(r chi.Router) {
 			r.Use(authMiddleware.RequireAuth)
 			r.Post("/logout", m.Handler.Logout)
+			r.Get("/sessions", m.Handler.GetSessions)
 		})
 	})
 }

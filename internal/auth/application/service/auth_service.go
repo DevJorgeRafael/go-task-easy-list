@@ -77,46 +77,92 @@ func (s *AuthService) Register(email, password, name string) (*model.User, error
 	return user, nil
 }
 
-func (s *AuthService) Login(email, password string) (accessToken, refreshToken string, err error) {
-	// 1. Buscar user por email con userRepo.FindByEmail()
+// Login - Iniciar sesión
+func (s *AuthService) Login(email, password string) (*model.User, string, string, bool, error) {
 	user, err := s.userRepo.FindByEmail(email)
 	if err != nil || user == nil {
-		return "", "", ErrInvalidCredentials
+		return nil, "", "", false, ErrInvalidCredentials
 	}
 
-	// 2. Verificar password con bcrypt.CompareHashAndPassword()
+	if !user.IsActive {
+		return nil, "", "", false, ErrInvalidCredentials
+	}
+
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
-		return "", "", ErrInvalidCredentials
+		return nil, "", "", false, ErrInvalidCredentials
 	}
 
 	s.cleanExpiredSessions(user.ID)
 
-	// 3. Generar JWT accessToken y refreshToken
-	accessToken, err = s.generateAccessToken(user.ID, user.Email)
-	if err != nil {
-		return "", "", err
+	activeSessions, _ := s.sessionRepo.CountByUserID(user.ID)
+	sessionRemoved := false
+	if activeSessions >= 3 {
+		s.sessionRepo.DeleteOldestByUserID(user.ID)
+		sessionRemoved = true
 	}
 
-	refreshToken = uuid.New().String()
+	accessToken, err := s.generateAccessToken(user.ID, user.Email)
+	if err != nil {
+		return nil, "", "", false, err
+	}
 
-	// 4. Guardar refreshToken en tabla sessions
+	refreshToken := uuid.New().String()
+
+	// 6. Guardar sesión
 	session := &model.Session{
-		ID: uuid.New().String(),
-		UserID: user.ID,
+		ID:           uuid.New().String(),
+		UserID:       user.ID,
 		RefreshToken: refreshToken,
-		ExpiresAt: time.Now().Add(7 * 24 * time.Hour), // 7 días
-		CreatedAt: time.Now(),
+		ExpiresAt:    time.Now().Add(7 * 24 * time.Hour),
+		CreatedAt:    time.Now(),
 	}
 
 	if err = s.sessionRepo.Create(session); err != nil {
-		return "", "", err
+		return nil, "", "", false, err
 	}
 
-	return accessToken, refreshToken, nil
+	userResponse := &model.User{
+		ID:        user.ID,
+		Email:     user.Email,
+		Name:      user.Name,
+		IsActive:  user.IsActive,
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
+	}
+
+	return userResponse, accessToken, refreshToken, sessionRemoved, nil
 }
 
 func (s *AuthService) Logout(userID string) error {
 	return s.sessionRepo.DeleteByUserID(userID)
+}
+
+func (s *AuthService) RefreshToken(refreshToken string) (newAccessToken string, err error) {
+	session ,err := s.sessionRepo.FindByRefreshToken(refreshToken)
+	if err != nil {
+		return "", errors.New("refresh token inválido")
+	}
+
+	if session.IsExpired() {
+		s.sessionRepo.DeleteByUserID(session.UserID)
+		return "", errors.New("refresh token expirado")
+	}
+
+	user, err := s.userRepo.FindByID(session.UserID)
+	if err != nil || user == nil {
+		return "", errors.New("usuario no encontrado")
+	}
+
+	newAccessToken, err = s.generateAccessToken(user.ID, user.Email)
+	if err != nil {
+		return "", err
+	}
+
+	return newAccessToken, nil
+}
+
+func (s *AuthService) GetActiveSessions(userId string) ([]*model.Session, error) {
+	return s.sessionRepo.FindActiveByUserID(userId)
 }
 
 // --------------------- Helpers ---------------------
