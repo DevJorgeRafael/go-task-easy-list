@@ -107,9 +107,13 @@ func formatValidationError(err error) string {
 }
 
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
-	// El middleware ya extrajo el userID y lo puso en el contexto
-	userID := r.Context().Value("userId").(string)
-	
+	// Extraer userId del contexto (establecido por el middleware)
+	userID, ok := r.Context().Value("userId").(string)
+	if !ok {
+		sharedhttp.ErrorResponse(w, http.StatusUnauthorized, "Usuario no autenticado")
+		return
+	}
+
 	if err := h.authService.Logout(userID); err != nil {
 		sharedhttp.ErrorResponse(w, http.StatusInternalServerError, "Error al cerrar sesión")
 		return
