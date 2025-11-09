@@ -34,5 +34,6 @@ func (m *AuthModule) RegisterRoutes(r chi.Router) {
 	r.Route("/api/auth", func(r chi.Router) {
 		r.Post("/register", m.Handler.Register)
 		r.Post("/login", m.Handler.Login)
+		r.Post("/logout", m.Handler.Logout)
 	})
 }

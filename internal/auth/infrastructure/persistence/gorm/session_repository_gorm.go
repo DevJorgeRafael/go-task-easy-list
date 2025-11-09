@@ -3,6 +3,7 @@ package gorm
 import (
 	"go-task-easy-list/internal/auth/domain/model"
 	"go-task-easy-list/internal/auth/domain/repository"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -50,4 +51,22 @@ func (r *SessionRepositoryGorm) DeleteByUserID(userID string) error {
 
 func (r *SessionRepositoryGorm) DeleteExpired() error {
 	return r.db.Where("expires_at < ?", gorm.Expr("NOW()")).Delete(&SessionModel{}).Error
+}
+
+func (r *SessionRepositoryGorm) CountByUserID(userID string) (int64, error) {
+	var count int64
+	err := r.db.Model(&SessionModel{}).Where("user_id = ? AND expires_at > ?", userID, time.Now()).Count(&count).Error
+	return count, err
+}
+
+func (r *SessionRepositoryGorm) DeleteOldestByUserID(userID string) error {
+	var oldestSession SessionModel
+	if err := r.db.Where("user_id = ?", userID).Order("created_at ASC").First(&oldestSession).Error; err != nil{
+		return err
+	}
+	return r.db.Delete(&oldestSession).Error
+}
+
+func (r *SessionRepositoryGorm) DeleteExpiredByUserID(userID string) error {
+	return r.db.Where("user_id = ? AND expires_at < ?", userID, time.Now()).Delete(&SessionModel{}).Error
 }

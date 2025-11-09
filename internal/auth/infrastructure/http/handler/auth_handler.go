@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"go-task-easy-list/internal/auth/application/service"
-	"go-task-easy-list/internal/shared/http"
+	sharedhttp "go-task-easy-list/internal/shared/http"
 	"net/http"
+
 
 	"github.com/go-playground/validator/v10"
 )
@@ -43,12 +44,12 @@ type AuthResponse struct {
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var req RegisterRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		infrastructure.ErrorResponse(w, http.StatusBadRequest, "JSON inválido")
+		sharedhttp.ErrorResponse(w, http.StatusBadRequest, "JSON inválido")
 		return
 	}
 
 	if err := h.validator.Struct(req); err != nil {
-		infrastructure.ErrorResponse(w, http.StatusBadRequest, formatValidationError(err))
+		sharedhttp.ErrorResponse(w, http.StatusBadRequest, formatValidationError(err))
 		return
 	}
 
@@ -58,24 +59,24 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		if err == service.ErrEmailExists {
 			status = http.StatusConflict
 		}
-		infrastructure.ErrorResponse(w, status, err.Error())
+		sharedhttp.ErrorResponse(w, status, err.Error())
 		return
 	}
 
-	infrastructure.SuccessResponse(w, http.StatusCreated, user)
+	sharedhttp.SuccessResponse(w, http.StatusCreated, user)
 }
 
 // Login - POST /api/auth/login
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var req LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		infrastructure.ErrorResponse(w, http.StatusBadRequest, err.Error())
+		sharedhttp.ErrorResponse(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	accessToken, refreshToken, err := h.authService.Login(req.Email, req.Password)
 	if err != nil {
-		infrastructure.ErrorResponse(w, http.StatusUnauthorized, "Credenciales inválidas")
+		sharedhttp.ErrorResponse(w, http.StatusUnauthorized, "Credenciales inválidas")
 		return
 	}
 
@@ -85,7 +86,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		RefreshToken: refreshToken,
 	}
 
-	infrastructure.SuccessResponse(w, http.StatusOK, response)
+	sharedhttp.SuccessResponse(w, http.StatusOK, response)
 }
 
 func formatValidationError(err error) string {
@@ -103,4 +104,16 @@ func formatValidationError(err error) string {
 		}
 	}
 	return "Datos inválidos"
+}
+
+func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	// El middleware ya extrajo el userID y lo puso en el contexto
+	userID := r.Context().Value("userId").(string)
+	
+	if err := h.authService.Logout(userID); err != nil {
+		sharedhttp.ErrorResponse(w, http.StatusInternalServerError, "Error al cerrar sesión")
+		return
+	}
+
+	sharedhttp.SuccessResponse(w, http.StatusOK, map[string]string{"message": "Sesión cerrada exitosamente"})
 }

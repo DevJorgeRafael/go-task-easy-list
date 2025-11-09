@@ -80,14 +80,16 @@ func (s *AuthService) Register(email, password, name string) (*model.User, error
 func (s *AuthService) Login(email, password string) (accessToken, refreshToken string, err error) {
 	// 1. Buscar user por email con userRepo.FindByEmail()
 	user, err := s.userRepo.FindByEmail(email)
-	if err != nil {
-		return "", "", err
+	if err != nil || user == nil {
+		return "", "", ErrInvalidCredentials
 	}
 
 	// 2. Verificar password con bcrypt.CompareHashAndPassword()
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
 		return "", "", ErrInvalidCredentials
 	}
+
+	s.cleanExpiredSessions(user.ID)
 
 	// 3. Generar JWT accessToken y refreshToken
 	accessToken, err = s.generateAccessToken(user.ID, user.Email)
@@ -113,6 +115,11 @@ func (s *AuthService) Login(email, password string) (accessToken, refreshToken s
 	return accessToken, refreshToken, nil
 }
 
+func (s *AuthService) Logout(userID string) error {
+	return s.sessionRepo.DeleteByUserID(userID)
+}
+
+// --------------------- Helpers ---------------------
 func (s *AuthService) generateAccessToken(userID, email string) (string ,error) {
 	claims := jwt.MapClaims{
 		"userId": userID,
@@ -128,4 +135,9 @@ func (s *AuthService) generateAccessToken(userID, email string) (string ,error) 
 func isValidEmail(email string) bool {
 	emailRegex := regexp.MustCompile(`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`)
 	return emailRegex.MatchString(email)
+}
+
+// Elimina sesiones expiradas del usuario
+func (s *AuthService) cleanExpiredSessions(userID string) {
+	s.sessionRepo.DeleteExpiredByUserID(userID)
 }
