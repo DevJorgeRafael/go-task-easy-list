@@ -3,6 +3,7 @@ package infrastructure
 import (
 	authConfig "go-task-easy-list/internal/auth/infrastructure/config"
 	"go-task-easy-list/internal/shared/infrastructure/middleware"
+	gormRepo "go-task-easy-list/internal/auth/infrastructure/persistence/gorm"
 
 	"github.com/go-chi/chi/v5"
 	"gorm.io/gorm"
@@ -15,9 +16,11 @@ type Container struct {
 }
 
 func NewContainer(db *gorm.DB, jwtSecret string) *Container {
+	sessionRepo := gormRepo.NewSessionRepository(db)
+
 	return &Container {
 		AuthModule: authConfig.NewAuthModule(db, jwtSecret),
-		AuthMiddleware: middleware.NewAuthMiddleware(jwtSecret),
+		AuthMiddleware: middleware.NewAuthMiddleware(jwtSecret, sessionRepo),
 		// TaskModule: taskConfig.NewTaskModule(db),
 	}
 }

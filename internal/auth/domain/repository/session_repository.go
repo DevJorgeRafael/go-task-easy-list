@@ -12,4 +12,5 @@ type SessionRepository interface {
 	CountByUserID(userID string) (int64, error)
 	DeleteOldestByUserID(userID string) error
 	DeleteExpiredByUserID(userID string) error
+	HasActiveSession(userID string) (bool, error)
 }

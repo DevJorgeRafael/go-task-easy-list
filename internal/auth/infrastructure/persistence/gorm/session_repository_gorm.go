@@ -104,3 +104,11 @@ func (r *SessionRepositoryGorm) FindByID(id string) (*model.Session, error) {
 		CreatedAt: sessionModel.CreatedAt,
 	}, nil
 }
+
+func (r *SessionRepositoryGorm) HasActiveSession(userID string) (bool, error) {
+	var count int64
+	err := r.db.Model(&SessionModel{}).
+		Where("user_id = ? AND expires_at > ?", userID, time.Now()).
+		Count(&count).Error
+	return count > 0, err
+}
