@@ -45,15 +45,14 @@ CREATE TABLE task_priorities (
     code        TEXT UNIQUE NOT NULL,       -- LOW, MEDIUM, HIGH
     name        TEXT NOT NULL,              -- "Baja", "Media", "Alta"
     level       INTEGER NOT NULL,           -- 1=LOW, 2=MEDIUM, 3=HIGH (para ORDER BY)
-    color       TEXT,                       -- Opcional: para UI (#green, #yellow, #red)
     created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Datos iniciales de prioridades
-INSERT INTO task_priorities (id, code, name, level, color) VALUES
-(1, 'LOW', 'Baja', 1, '#22c55e'),
-(2, 'MEDIUM', 'Media', 2, '#eab308'),
-(3, 'HIGH', 'Alta', 3, '#ef4444');
+INSERT INTO task_priorities (id, code, name, level) VALUES
+(1, 'LOW', 'Baja', 1),
+(2, 'MEDIUM', 'Media', 2),
+(3, 'HIGH', 'Alta', 3);
 
 -- Tabla principal: Tareas
 CREATE TABLE tasks (

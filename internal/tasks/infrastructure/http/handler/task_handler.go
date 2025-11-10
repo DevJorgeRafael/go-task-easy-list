@@ -2,9 +2,10 @@ package handler
 
 import (
 	"encoding/json"
-	sharedhttp "go-task-easy-list/internal/shared/http"
 	sharedContext "go-task-easy-list/internal/shared/context"
+	sharedhttp "go-task-easy-list/internal/shared/http"
 	format "go-task-easy-list/internal/shared/http/utils"
+	sharedValidation "go-task-easy-list/internal/shared/validation"
 	"go-task-easy-list/internal/tasks/application/service"
 	"net/http"
 	"strconv"
@@ -21,15 +22,15 @@ type TaskHandler struct {
 func NewTaskHandler(taskService *service.TaskService) *TaskHandler {
 	return &TaskHandler{
 		taskService: taskService,
-		validator:   validator.New(),
+		validator:   sharedValidation.NewValidator(),
 	}
 }
 
 type TaskRequest struct {
 	Title       string `json:"title" validate:"required"`
 	Description string `json:"description"`
-	StatusId    string `json:"statusId"`
-	PriorityId  string `json:"priorityId"`
+	StatusId    int    `json:"statusId" validate:"required,min=1,max=3"`
+	PriorityId  int    `json:"priorityId" validate:"required,min=1,max=3"`
 	StartsAt    string `json:"startsAt"`
 	DueDate     string `json:"dueDate"`
 }
@@ -65,18 +66,6 @@ func (h *TaskHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	statusId, err := strconv.Atoi(req.StatusId)
-	if err != nil {
-		sharedhttp.ErrorResponse(w, http.StatusBadRequest, "StatusId inválido")
-		return
-	}
-
-	priorityId, err := strconv.Atoi(req.PriorityId)
-	if err != nil {
-		sharedhttp.ErrorResponse(w, http.StatusBadRequest, "PriorityId inválido")
-		return
-	}
-
 	startsAt, err := time.Parse(time.RFC3339, req.StartsAt)
 	if err != nil {
 		sharedhttp.ErrorResponse(w, http.StatusBadRequest, "StartsAt inválido")
@@ -89,12 +78,20 @@ func (h *TaskHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	task, err := h.taskService.CreateTask(req.Title, req.Description, statusId, priorityId, startsAt, dueDate, userID)
+	task, err := h.taskService.CreateTask(
+		req.Title, 
+		req.Description, 
+		req.StatusId, 
+		req.PriorityId, 
+		startsAt, 
+		dueDate, 
+		userID,
+	)
 	if err != nil {
 		sharedhttp.ErrorResponse(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	
+
 	resp := TaskResponse{
 		ID:          task.ID,
 		Title:       task.Title,

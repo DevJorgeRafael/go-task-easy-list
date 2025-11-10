@@ -7,6 +7,5 @@ type TaskPriority struct {
 	Code      string    `json:"code"`
 	Name      string    `json:"name"`
 	Level     int       `json:"level"`
-	Color     string    `json:"color"`
 	CreatedAt time.Time `json:"createdAt"`
 }

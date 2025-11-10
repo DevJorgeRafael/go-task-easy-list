@@ -14,7 +14,8 @@ var (
 	ErrInvalidTitle   = errors.New("el título no puede estar vacío")
 	ErrTaskNotFound   = errors.New("tarea no encontrada")
 	ErrUnauthorized   = errors.New("no autorizado para esta tarea")
-	ErrInvalidDueDate = errors.New("fecha de vencimiento debe ser en el futuro y después de la fecha de creación")
+	ErrInvalidDueDate = errors.New("fecha de vencimiento debe ser en el futuro")
+	ErrInvalidDates   = errors.New("fecha de inicio no puede ser posterior a la fecha de vencimiento")
 )
 
 type TaskService struct {
@@ -32,6 +33,10 @@ func (s *TaskService) CreateTask(title, description string, statusID, priorityID
 
 	if !dueDate.IsZero() && dueDate.Before(time.Now()) {
 		return nil, ErrInvalidDueDate
+	}
+
+	if !startsAt.IsZero() && !dueDate.IsZero() && startsAt.After(dueDate) {
+		return nil, ErrInvalidDates
 	}
 
 	newTask := &model.Task{

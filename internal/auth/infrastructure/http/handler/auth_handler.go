@@ -6,6 +6,7 @@ import (
 	"go-task-easy-list/internal/auth/application/service"
 	sharedhttp "go-task-easy-list/internal/shared/http"
 	sharedContext "go-task-easy-list/internal/shared/context"
+	sharedValidation "go-task-easy-list/internal/shared/validation"
 	"net/http"
 
 	"github.com/go-playground/validator/v10"
@@ -19,7 +20,7 @@ type AuthHandler struct {
 func NewAuthHandler(authService *service.AuthService) *AuthHandler {
 	return &AuthHandler{
 		authService: authService,
-		validator:   validator.New(),
+		validator:   sharedValidation.NewValidator(),
 	}
 }
 
