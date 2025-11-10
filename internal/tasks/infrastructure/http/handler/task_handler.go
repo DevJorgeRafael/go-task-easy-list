@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
 )
 
@@ -96,13 +97,84 @@ func (h *TaskHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
 		ID:          task.ID,
 		Title:       task.Title,
 		Description: task.Description,
-		StatusId:    strconv.Itoa(task.StatusID.ID),
-		PriorityId:  strconv.Itoa(task.PriorityID.ID),
+		StatusId:    strconv.Itoa(task.StatusID),
+		PriorityId:  strconv.Itoa(task.PriorityID),
+		StartsAt:    formatTime(task.StartsAt),
+		DueDate:     formatTime(task.DueDate),
+		CreatedAt:   task.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:   task.UpdatedAt.Format(time.RFC3339),
+	}
+
+	sharedhttp.SuccessResponse(w, http.StatusCreated, resp)
+}
+
+// GetTasks - GET /api/tasks
+func (h *TaskHandler) GetTasks(w http.ResponseWriter, r *http.Request) {
+	userID, ok := r.Context().Value(sharedContext.UserIdKey).(string)
+	if !ok {
+		sharedhttp.ErrorResponse(w, http.StatusUnauthorized, "Usuario no autenticado")
+		return
+	}
+
+	tasks, err := h.taskService.GetTasksByUserID(userID)
+	if err != nil {
+		sharedhttp.ErrorResponse(w, http.StatusInternalServerError, "Error al obtener tareas")
+		return
+	}
+
+	var resp []TaskResponse
+	for _, task := range tasks {
+		resp = append(resp, TaskResponse{
+			ID:          task.ID,
+			Title:       task.Title,
+			Description: task.Description,
+			StatusId:    strconv.Itoa(task.StatusID),
+			PriorityId:  strconv.Itoa(task.PriorityID),
+			StartsAt:    task.StartsAt.Format(time.RFC3339),
+			DueDate:     task.DueDate.Format(time.RFC3339),
+			CreatedAt:   task.CreatedAt.Format(time.RFC3339),
+			UpdatedAt:   task.UpdatedAt.Format(time.RFC3339),
+		})
+	}
+
+	sharedhttp.SuccessResponse(w, http.StatusOK, resp)
+}
+
+// GetTask - GET /api/tasks/{id}
+func (h *TaskHandler) GetTask(w http.ResponseWriter, r *http.Request) {
+	userID, ok := r.Context().Value(sharedContext.UserIdKey).(string)
+	if !ok {
+		sharedhttp.ErrorResponse(w, http.StatusUnauthorized, "Usuario no autenticado")
+		return
+	}
+
+	taskID := chi.URLParam(r, "id")
+	task, err := h.taskService.GetTaskByID(taskID, userID)
+	if err != nil {
+		sharedhttp.ErrorResponse(w, http.StatusNotFound, err.Error())
+		return
+	}
+
+	resp := TaskResponse{
+		ID:          task.ID,
+		Title:       task.Title,
+		Description: task.Description,
+		StatusId:    strconv.Itoa(task.StatusID),
+		PriorityId:  strconv.Itoa(task.PriorityID),
 		StartsAt:    task.StartsAt.Format(time.RFC3339),
 		DueDate:     task.DueDate.Format(time.RFC3339),
 		CreatedAt:   task.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:   task.UpdatedAt.Format(time.RFC3339),
 	}
 
-	sharedhttp.SuccessResponse(w, http.StatusCreated, resp)
+	sharedhttp.SuccessResponse(w, http.StatusOK, resp)
+}
+
+
+// ------------------------- HELPERS ------------------------- //
+func formatTime(t time.Time) string {
+	if t.IsZero() {
+		return ""
+	}
+	return t.Format(time.RFC3339)
 }

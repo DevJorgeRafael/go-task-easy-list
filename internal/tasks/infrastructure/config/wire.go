@@ -34,5 +34,7 @@ func (m *TaskModule) RegisterRoutes(r chi.Router, authMiddleware *middleware.Aut
 	r.Route("/api/tasks", func(r chi.Router) {
 		r.Use(authMiddleware.RequireAuth)
 		r.Post("/", m.Handler.CreateTask)
+		r.Get("/", m.Handler.GetTasks)
+		r.Get("/{id}", m.Handler.GetTask)
 	})
 }

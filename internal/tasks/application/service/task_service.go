@@ -44,8 +44,8 @@ func (s *TaskService) CreateTask(title, description string, statusID, priorityID
 		UserID: userID,
 		Title: title,
 		Description: description,
-		StatusID: &model.TaskStatus{ID: statusID},
-		PriorityID: &model.TaskPriority{ID: priorityID},
+		StatusID: statusID,
+		PriorityID: priorityID,
 		StartsAt: startsAt,
 		DueDate: dueDate,
 		CreatedAt: time.Now(),
@@ -141,7 +141,7 @@ func (s *TaskService) ChangeStatus(taskID, userID string, statusID int) error {
 		return ErrUnauthorized
 	}
 
-	task.StatusID = &model.TaskStatus{ID: statusID}
+	task.StatusID = statusID
 	task.UpdatedAt = time.Now()
 
 	return s.taskRepo.Update(task)
@@ -157,7 +157,7 @@ func (s *TaskService) ChangePriority(taskID, userID string, priorityID int) erro
 		return ErrUnauthorized
 	}
 
-	task.PriorityID = &model.TaskPriority{ID: priorityID}
+	task.PriorityID = priorityID
 	task.UpdatedAt = time.Now()
 
 	return s.taskRepo.Update(task)
