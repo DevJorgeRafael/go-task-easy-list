@@ -36,5 +36,7 @@ func (m *TaskModule) RegisterRoutes(r chi.Router, authMiddleware *middleware.Aut
 		r.Post("/", m.Handler.CreateTask)
 		r.Get("/", m.Handler.GetTasks)
 		r.Get("/{id}", m.Handler.GetTask)
+		r.Put("/{id}", m.Handler.UpdateTask)
+		r.Delete("/{id}", m.Handler.DeleteTask)
 	})
 }

@@ -7,8 +7,8 @@ import (
 	format "go-task-easy-list/internal/shared/http/utils"
 	sharedValidation "go-task-easy-list/internal/shared/validation"
 	"go-task-easy-list/internal/tasks/application/service"
+	"go-task-easy-list/internal/tasks/domain/model"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -40,8 +40,8 @@ type TaskResponse struct {
 	ID          string `json:"id"`
 	Title       string `json:"title"`
 	Description string `json:"description"`
-	StatusId    string `json:"statusId"`
-	PriorityId  string `json:"priorityId"`
+	StatusId    int    `json:"statusId"`
+	PriorityId  int    `json:"priorityId"`
 	StartsAt    string `json:"startsAt"`
 	DueDate     string `json:"dueDate"`
 	CreatedAt   string `json:"createdAt"`
@@ -97,8 +97,8 @@ func (h *TaskHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
 		ID:          task.ID,
 		Title:       task.Title,
 		Description: task.Description,
-		StatusId:    strconv.Itoa(task.StatusID),
-		PriorityId:  strconv.Itoa(task.PriorityID),
+		StatusId:    task.StatusID,
+		PriorityId:  task.PriorityID,
 		StartsAt:    formatTime(task.StartsAt),
 		DueDate:     formatTime(task.DueDate),
 		CreatedAt:   task.CreatedAt.Format(time.RFC3339),
@@ -128,8 +128,8 @@ func (h *TaskHandler) GetTasks(w http.ResponseWriter, r *http.Request) {
 			ID:          task.ID,
 			Title:       task.Title,
 			Description: task.Description,
-			StatusId:    strconv.Itoa(task.StatusID),
-			PriorityId:  strconv.Itoa(task.PriorityID),
+			StatusId:    task.StatusID,
+			PriorityId:  task.PriorityID,
 			StartsAt:    task.StartsAt.Format(time.RFC3339),
 			DueDate:     task.DueDate.Format(time.RFC3339),
 			CreatedAt:   task.CreatedAt.Format(time.RFC3339),
@@ -159,8 +159,8 @@ func (h *TaskHandler) GetTask(w http.ResponseWriter, r *http.Request) {
 		ID:          task.ID,
 		Title:       task.Title,
 		Description: task.Description,
-		StatusId:    strconv.Itoa(task.StatusID),
-		PriorityId:  strconv.Itoa(task.PriorityID),
+		StatusId:    task.StatusID,
+		PriorityId:  task.PriorityID,
 		StartsAt:    task.StartsAt.Format(time.RFC3339),
 		DueDate:     task.DueDate.Format(time.RFC3339),
 		CreatedAt:   task.CreatedAt.Format(time.RFC3339),
@@ -170,6 +170,71 @@ func (h *TaskHandler) GetTask(w http.ResponseWriter, r *http.Request) {
 	sharedhttp.SuccessResponse(w, http.StatusOK, resp)
 }
 
+// PUT /api/tasks/{id}
+func (h *TaskHandler) UpdateTask(w http.ResponseWriter, r *http.Request) {
+	userID, ok := r.Context().Value(sharedContext.UserIdKey).(string)
+	if !ok {
+		sharedhttp.ErrorResponse(w, http.StatusUnauthorized, "Usuario no autenticado")
+		return
+	}
+
+	taskID := chi.URLParam(r, "id")
+
+	var req TaskRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		sharedhttp.ErrorResponse(w, http.StatusBadRequest, "JSON inválido")
+		return
+	}
+
+	if err := h.validator.Struct(req); err != nil {
+		sharedhttp.ErrorResponse(w, http.StatusBadRequest, format.FormatValidationError(err))
+		return
+	}
+
+	startsAt, err := time.Parse(time.RFC3339, req.StartsAt)
+	if err != nil {
+		sharedhttp.ErrorResponse(w, http.StatusBadRequest, "StartsAt inválido")
+		return
+	}
+	dueDate, err := time.Parse(time.RFC3339, req.DueDate)
+	if err != nil {
+		sharedhttp.ErrorResponse(w, http.StatusBadRequest, "DueDate inválido")
+		return
+	}
+
+	updatedTask, err := h.taskService.UpdateTask(&model.Task{
+		ID:          taskID,
+		Title:       req.Title,
+		Description: req.Description,
+		StatusID:    req.StatusId,
+		PriorityID:  req.PriorityId,
+		StartsAt:    startsAt,
+		DueDate:     dueDate,
+	}, userID)
+	if err != nil {
+		sharedhttp.ErrorResponse(w, http.StatusBadRequest, err.Error())
+		return			
+	}
+
+	sharedhttp.SuccessResponse(w, http.StatusOK, updatedTask)
+}
+
+// DELETE /api/tasks/{id}
+func (h *TaskHandler) DeleteTask(w http.ResponseWriter, r *http.Request) {
+	userID, ok := r.Context().Value(sharedContext.UserIdKey).(string)
+	if !ok {
+		sharedhttp.ErrorResponse(w, http.StatusUnauthorized, "Usuario no autenticado")
+	}
+
+	taskID := chi.URLParam(r, "id")
+	err := h.taskService.DeleteTask(taskID, userID)
+	if err != nil {
+		sharedhttp.ErrorResponse(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	sharedhttp.SuccessResponse(w, http.StatusNoContent, nil)
+}
 
 // ------------------------- HELPERS ------------------------- //
 func formatTime(t time.Time) string {

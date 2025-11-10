@@ -49,6 +49,8 @@ func (r *TaskRepositoryGorm) FindByUserID(userID string) ([]*model.Task, error) 
 			ID:        tm.ID,
 			UserID:    tm.UserID,
 			Title:     tm.Title,
+			StatusID:  tm.StatusID,
+			PriorityID: tm.PriorityID,
 			Description: tm.Description,
 			StartsAt:  derefTime(tm.StartsAt),
 			DueDate:   derefTime(tm.DueDate),
