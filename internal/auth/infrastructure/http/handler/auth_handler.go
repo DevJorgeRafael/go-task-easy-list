@@ -2,9 +2,10 @@ package handler
 
 import (
 	"encoding/json"
-	"fmt"
+	format "go-task-easy-list/internal/shared/http/utils"
 	"go-task-easy-list/internal/auth/application/service"
 	sharedhttp "go-task-easy-list/internal/shared/http"
+	sharedContext "go-task-easy-list/internal/shared/context"
 	"net/http"
 
 	"github.com/go-playground/validator/v10"
@@ -49,7 +50,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.validator.Struct(req); err != nil {
-		sharedhttp.ErrorResponse(w, http.StatusBadRequest, formatValidationError(err))
+		sharedhttp.ErrorResponse(w, http.StatusBadRequest, format.FormatValidationError(err))
 		return
 	}
 
@@ -97,7 +98,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	// Extraer userId del contexto (establecido por el middleware)
-	userID, ok := r.Context().Value("userId").(string)
+	userID, ok := r.Context().Value(sharedContext.UserIdKey).(string)
 	if !ok {
 		sharedhttp.ErrorResponse(w, http.StatusUnauthorized, "Usuario no autenticado")
 		return
@@ -111,22 +112,6 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	sharedhttp.SuccessResponse(w, http.StatusOK, map[string]string{"message": "Sesión cerrada exitosamente"})
 }
 
-func formatValidationError(err error) string {
-	if validationErrors, ok := err.(validator.ValidationErrors); ok {
-		for _, e := range validationErrors {
-			field := e.Field()
-			switch e.Tag() {
-			case "required":
-				return fmt.Sprintf("El campo '%s' es requerido", field)
-			case "email":
-				return "Formato de email inválido"
-			case "min":
-				return fmt.Sprintf("El campo '%s' debe tener al menos %s caracteres", field, e.Param())
-			}
-		}
-	}
-	return "Datos inválidos"
-}
 
 // ---------------------------- Refresh Token ---------------------------- //
 type RefreshRequest struct {
@@ -146,7 +131,7 @@ func (h *AuthHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.validator.Struct(req); err != nil {
-		sharedhttp.ErrorResponse(w, http.StatusBadRequest, formatValidationError(err))
+		sharedhttp.ErrorResponse(w, http.StatusBadRequest, format.FormatValidationError(err))
 		return
 	}
 
@@ -165,7 +150,7 @@ func (h *AuthHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 
 // GetSessions - GET /api/auth/sessions
 func (h *AuthHandler) GetSessions(w http.ResponseWriter, r *http.Request) {
-	userID, ok := r.Context().Value("userId").(string)
+	userID, ok := r.Context().Value(sharedContext.UserIdKey).(string)
 	if !ok {
 		sharedhttp.ErrorResponse(w, http.StatusUnauthorized, "Usuario no autenticado")
 		return
