@@ -50,11 +50,7 @@ type TaskResponse struct {
 
 // CreateTask - POST /api/tasks
 func (h *TaskHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
-	userID, ok := r.Context().Value(sharedContext.UserIdKey).(string)
-	if !ok {
-		sharedhttp.ErrorResponse(w, http.StatusUnauthorized, "Usuario no autenticado")
-		return
-	}
+	userID := sharedContext.GetUserID(r.Context())
 
 	var req TaskRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -110,11 +106,7 @@ func (h *TaskHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
 
 // GetTasks - GET /api/tasks
 func (h *TaskHandler) GetTasks(w http.ResponseWriter, r *http.Request) {
-	userID, ok := r.Context().Value(sharedContext.UserIdKey).(string)
-	if !ok {
-		sharedhttp.ErrorResponse(w, http.StatusUnauthorized, "Usuario no autenticado")
-		return
-	}
+	userID := sharedContext.GetUserID(r.Context())
 
 	tasks, err := h.taskService.GetTasksByUserID(userID)
 	if err != nil {
@@ -142,13 +134,9 @@ func (h *TaskHandler) GetTasks(w http.ResponseWriter, r *http.Request) {
 
 // GetTask - GET /api/tasks/{id}
 func (h *TaskHandler) GetTask(w http.ResponseWriter, r *http.Request) {
-	userID, ok := r.Context().Value(sharedContext.UserIdKey).(string)
-	if !ok {
-		sharedhttp.ErrorResponse(w, http.StatusUnauthorized, "Usuario no autenticado")
-		return
-	}
-
+	userID := sharedContext.GetUserID(r.Context())
 	taskID := chi.URLParam(r, "id")
+
 	task, err := h.taskService.GetTaskByID(taskID, userID)
 	if err != nil {
 		sharedhttp.ErrorResponse(w, http.StatusNotFound, err.Error())
@@ -172,12 +160,7 @@ func (h *TaskHandler) GetTask(w http.ResponseWriter, r *http.Request) {
 
 // PUT /api/tasks/{id}
 func (h *TaskHandler) UpdateTask(w http.ResponseWriter, r *http.Request) {
-	userID, ok := r.Context().Value(sharedContext.UserIdKey).(string)
-	if !ok {
-		sharedhttp.ErrorResponse(w, http.StatusUnauthorized, "Usuario no autenticado")
-		return
-	}
-
+	userID := sharedContext.GetUserID(r.Context())
 	taskID := chi.URLParam(r, "id")
 
 	var req TaskRequest
@@ -221,10 +204,7 @@ func (h *TaskHandler) UpdateTask(w http.ResponseWriter, r *http.Request) {
 
 // DELETE /api/tasks/{id}
 func (h *TaskHandler) DeleteTask(w http.ResponseWriter, r *http.Request) {
-	userID, ok := r.Context().Value(sharedContext.UserIdKey).(string)
-	if !ok {
-		sharedhttp.ErrorResponse(w, http.StatusUnauthorized, "Usuario no autenticado")
-	}
+	userID := sharedContext.GetUserID(r.Context())
 
 	taskID := chi.URLParam(r, "id")
 	err := h.taskService.DeleteTask(taskID, userID)

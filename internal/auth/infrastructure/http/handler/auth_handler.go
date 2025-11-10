@@ -99,11 +99,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	// Extraer userId del contexto (establecido por el middleware)
-	userID, ok := r.Context().Value(sharedContext.UserIdKey).(string)
-	if !ok {
-		sharedhttp.ErrorResponse(w, http.StatusUnauthorized, "Usuario no autenticado")
-		return
-	}
+	userID := sharedContext.GetUserID(r.Context())
 
 	if err := h.authService.Logout(userID); err != nil {
 		sharedhttp.ErrorResponse(w, http.StatusInternalServerError, "Error al cerrar sesión")
@@ -151,11 +147,7 @@ func (h *AuthHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 
 // GetSessions - GET /api/auth/sessions
 func (h *AuthHandler) GetSessions(w http.ResponseWriter, r *http.Request) {
-	userID, ok := r.Context().Value(sharedContext.UserIdKey).(string)
-	if !ok {
-		sharedhttp.ErrorResponse(w, http.StatusUnauthorized, "Usuario no autenticado")
-		return
-	}
+	userID := sharedContext.GetUserID(r.Context())
 
 	sessions, err := h.authService.GetActiveSessions(userID)
 	if err != nil {
