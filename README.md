@@ -56,7 +56,7 @@ go-task-easy-list/
 
 ### 1. Clonar el repositorio
 ```bash
-git clone https://github.com/tu-usuario/go-task-easy-list.git
+git clone https://github.com/DevJorgeRafael/go-task-easy-list.git
 cd go-task-easy-list
 ```
 
@@ -72,18 +72,20 @@ Copia `.env.example` y configura tus variables:
 cp .env.example .env
 ```
 ```env
-# .env.example
-DB_PATH=./todo.db
-JWT_SECRET=tu-secreto-super-seguro-cambiar-en-produccion
+# Server
 PORT=8080
+
+# Database
+DB_PATH=./todo.db
+
+# JWT
+JWT_SECRET=super-secret-key
+JWT_ACCESS_EXPIRATION=1h
+JWT_REFRESH_EXPIRATION=7d
 ```
 
-### 4. Ejecutar migraciones
-```bash
-sqlite3 todo.db < migrations/schema.sql
-```
 
-### 5. Iniciar el servidor
+### 4. Iniciar el servidor
 ```bash
 go run main.go
 ```
@@ -123,82 +125,6 @@ Todas las rutas requieren autenticación (Header: `Authorization: Bearer <token>
 | GET | `/api/tasks/by-status/{statusId}` | Filtrar por estado *(próximamente)* |
 | GET | `/api/tasks/by-priority/{priorityId}` | Filtrar por prioridad *(próximamente)* |
 
-## 📝 Ejemplos de Uso
-
-### Registro de Usuario
-```bash
-curl -X POST http://localhost:8080/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "usuario@ejemplo.com",
-    "password": "contraseña123",
-    "name": "Juan Pérez"
-  }'
-```
-
-### Login
-```bash
-curl -X POST http://localhost:8080/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "usuario@ejemplo.com",
-    "password": "contraseña123"
-  }'
-```
-
-**Respuesta:**
-```json
-{
-  "success": true,
-  "data": {
-    "accessToken": "eyJhbGc...",
-    "refreshToken": "eyJhbGc...",
-    "expiresIn": 3600
-  }
-}
-```
-
-### Crear Tarea
-```bash
-curl -X POST http://localhost:8080/api/tasks \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <tu-access-token>" \
-  -d '{
-    "title": "Aprender Go",
-    "description": "Completar proyecto de tareas",
-    "statusId": 1,
-    "priorityId": 3,
-    "startsAt": "2025-11-10T09:00:00Z",
-    "dueDate": "2025-11-15T18:00:00Z"
-  }'
-```
-
-### Listar Tareas
-```bash
-curl -X GET http://localhost:8080/api/tasks \
-  -H "Authorization: Bearer <tu-access-token>"
-```
-
-### Actualizar Tarea
-```bash
-curl -X PUT http://localhost:8080/api/tasks/{id} \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <tu-access-token>" \
-  -d '{
-    "title": "Aprender Go - Actualizado",
-    "description": "Dominar goroutines y channels",
-    "statusId": 2,
-    "priorityId": 3,
-    "startsAt": "2025-11-10T09:00:00Z",
-    "dueDate": "2025-11-15T18:00:00Z"
-  }'
-```
-
-### Eliminar Tarea
-```bash
-curl -X DELETE http://localhost:8080/api/tasks/{id} \
-  -H "Authorization: Bearer <tu-access-token>"
-```
 
 ## 📊 Modelos de Datos
 
@@ -241,24 +167,6 @@ curl -X DELETE http://localhost:8080/api/tasks/{id} \
 - Validación de sesiones activas
 - Middleware de autenticación en todas las rutas protegidas
 
-## 🚧 Roadmap
-
-- [ ] Filtros por estado y prioridad
-- [ ] Marcar tareas como completadas (PATCH)
-- [ ] Búsqueda de tareas
-- [ ] Ordenamiento personalizado
-- [ ] Paginación
-- [ ] Notificaciones de tareas próximas a vencer
-- [ ] Etiquetas/tags para tareas
-- [ ] Frontend (TBD)
-
-## 🤝 Contribuciones
-
-Este es un proyecto de aprendizaje personal, pero las sugerencias son bienvenidas.
-
-## 📄 Licencia
-
-MIT
 
 ## 👤 Autor
 
