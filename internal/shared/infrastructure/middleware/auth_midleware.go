@@ -4,6 +4,7 @@ import (
 	"context"
 	"go-task-easy-list/internal/auth/domain/repository"
 	sharedhttp "go-task-easy-list/internal/shared/http"
+	sharedContext "go-task-easy-list/internal/shared/context"
 	"net/http"
 	"strings"
 
@@ -70,7 +71,7 @@ func (m *AuthMiddleware) RequireAuth(next http.Handler) http.Handler {
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), "userId", userID)
+		ctx := context.WithValue(r.Context(), sharedContext.UserIdKey, userID)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
