@@ -6,11 +6,12 @@ import (
 	"time"
 
 	"github.com/glebarez/sqlite"
+	// "gorm.io/driver/postgres" // para base de datos Postgres
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
 
-func InitDatabase(dbPath string) (*gorm.DB, error) {
+func InitDatabase(dbPath string) (*gorm.DB, error) {  // o cambiar a databaseUrl string para Postgres
 	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Silent),
 	})

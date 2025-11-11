@@ -22,7 +22,7 @@ func main() {
 		log.Fatal("Error cargando config:", err)
 	}
 
-	db, err := config.InitDatabase(cfg.DBPath)
+	db, err := config.InitDatabase(cfg.DBPath) // o cambiar a cfg.DatabaseUrl para Postgres
 	if err != nil {
 		log.Fatal("Error inicializando base de datos:", err)
 	}
@@ -32,8 +32,8 @@ func main() {
 	container := infrastructure.NewContainer(db, cfg.JWTSecret)
 
 	r := chi.NewRouter()
-	// r.Use(middleware.Logger)
-	// r.Use(middleware.Recoverer)
+	// r.Use(middleware.Logger)  // Habilitar si se desea logging de solicitudes
+	// r.Use(middleware.Recoverer)  // Habilitar para recuperación de pánicos y evitar caídas del servidor
 
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("OK"))
