@@ -41,7 +41,7 @@ func InitDatabase(dbPath string) (*gorm.DB, error) {  // o cambiar a databaseUrl
 	return db, nil
 }
 
-
+// Si es que se desea tablas predefinidas para datos estáticos de las foreign keys
 func seedTaskCatalogs(db *gorm.DB) error {
 	// Verificar si ya existen datos
 	var count int64
