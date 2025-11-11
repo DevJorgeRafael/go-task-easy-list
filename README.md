@@ -1,54 +1,53 @@
-# Go Task Easy List
+# 🚀 Plantilla de API Go con Clean Architecture
 
-API REST para gestión de tareas con autenticación JWT y sesiones, construida con Go siguiendo principios de Clean Architecture.
+Plantilla de API REST para Go, construida con principios de Clean Architecture. Incluye un sistema de autenticación JWT completo (con refresh tokens) y un módulo de ejemplo (tasks) listo para ser clonado y adaptado a tus necesidades.
 
 ## 🚀 Características
 
 - ✅ Autenticación con JWT (Access + Refresh tokens)
 - 🔐 Gestión de sesiones activas
-- 📝 CRUD completo de tareas
-- 🎯 Sistema de prioridades (Baja, Media, Alta)
-- 📊 Estados de tareas (Pendiente, En Progreso, Completada)
-- 🏗️ Clean Architecture (Domain, Application, Infrastructure)
-- 🗄️ SQLite con GORM
+- 🏗️ Clean Architecture (Dominio, Aplicación, Infraestructura)
+- 🗄️ Base de Datos Dual (PostgreSQL o SQLite) con GORM
+- 📝 Módulo de Ejemplo (CRUD de Tareas) para que veas cómo estructurar los tuyos
 - ✔️ Validación de datos con go-playground/validator
+- 🧩 Inyección de Dependencias (DI) simple y manual
+- 🛣️ Router ligero con chi
 
 ## 📁 Estructura del Proyecto
+La estructura está diseñada para separar responsabilidades y escalar
+
 ```
-go-task-easy-list/
-├── config/                      # Configuración global
-│   ├── config.go               # Variables de entorno
-│   └── database.go             # Conexión a BD
+go-easy-list/
+├── config/                  # Configuración (Variables de entorno, BBDD)
+│   ├── config.go
+│   └── database.go
 ├── internal/
-│   ├── auth/                   # Módulo de autenticación
-│   │   ├── application/
-│   │   │   └── service/        # Lógica de negocio
-│   │   ├── domain/
-│   │   │   ├── model/          # Entidades
-│   │   │   └── repository/     # Interfaces
-│   │   └── infrastructure/
-│   │       ├── config/         # Wire/DI
-│   │       ├── http/handler/   # Controllers
-│   │       └── persistence/    # Implementación repos
-│   ├── tasks/                  # Módulo de tareas
+│   ├── auth/                # Módulo de Autenticación (¡Listo para usar!)
 │   │   ├── application/
 │   │   ├── domain/
 │   │   └── infrastructure/
-│   └── shared/                 # Código compartido
-│       ├── context/            # Context helpers
-│       ├── http/               # Response handlers
-│       ├── infrastructure/     # Middleware, DI
-│       └── validation/         # Validadores
-└── migrations/
-    └── schema.sql              # Schema de BD
+│   ├── tasks/               # Módulo de Ejemplo (renombrar o eliminar)
+│   │   ├── application/
+│   │   ├── domain/
+│   │   └── infrastructure/
+│   └── shared/              # Código compartido (Middleware, Handlers, DI)
+│       ├── context/
+│       ├── http/
+│       ├── infrastructure/
+│       └── validation/
+├── .env.example             # Plantilla de variables de entorno
+├── go.mod
+├── go.sum
+└── main.go                 # Punto de partida
+
 ```
 
 ## 🛠️ Tecnologías
 
 - **Go 1.23+**
+- **PostgreSQL** (Recomendado) o **SQLite**
 - **Chi** - Router HTTP
 - **GORM** - ORM
-- **SQLite** - Base de datos
 - **JWT** - Autenticación
 - **Validator** - Validación de datos
 
@@ -75,10 +74,17 @@ cp .env.example .env
 # Server
 PORT=8080
 
-# Database
-DB_PATH=./todo.db
+# --- Base de Datos (Elegir una) ---
 
-# JWT
+# Opción 1: PostgreSQL (Recomendado)
+# Descomentar y ajustar la URL de conexión
+DATABASE_URL="postgres://postgres:<password>@localhost:5432/<my_db>?sslmode=disable"
+
+# Opción 2: SQLite
+# Descomentar para usar un archivo local
+# DB_PATH=./app.db
+
+# JWT (Cambiar por valores seguros)
 JWT_SECRET=super-secret-key
 JWT_ACCESS_EXPIRATION=1h
 JWT_REFRESH_EXPIRATION=7d
@@ -108,7 +114,7 @@ El servidor estará disponible en `http://localhost:8080`
 
 | Método | Endpoint | Descripción |
 |--------|----------|-------------|
-| POST | `/api/auth/logout` | Cerrar sesión |
+| POST | `/api/auth/logout` | Cerrar sesiones |
 | GET | `/api/auth/sessions` | Listar sesiones activas |
 
 ### ✅ Tareas (`/api/tasks`)
@@ -126,39 +132,6 @@ Todas las rutas requieren autenticación (Header: `Authorization: Bearer <token>
 | GET | `/api/tasks/by-priority/{priorityId}` | Filtrar por prioridad *(próximamente)* |
 
 
-## 📊 Modelos de Datos
-
-### Task
-```json
-{
-  "id": "uuid",
-  "title": "string",
-  "description": "string",
-  "statusId": 1,           // 1=Pendiente, 2=En Progreso, 3=Completada
-  "priorityId": 2,         // 1=Baja, 2=Media, 3=Alta
-  "startsAt": "2025-11-10T09:00:00Z",
-  "dueDate": "2025-11-15T18:00:00Z",
-  "createdAt": "2025-11-09T22:00:00Z",
-  "updatedAt": "2025-11-09T22:00:00Z"
-}
-```
-
-### Estados (task_statuses)
-
-| ID | Code | Name |
-|----|------|------|
-| 1 | PENDING | Pendiente |
-| 2 | IN_PROGRESS | En Progreso |
-| 3 | COMPLETED | Completada |
-
-### Prioridades (task_priorities)
-
-| ID | Code | Name | Level |
-|----|------|------|-------|
-| 1 | LOW | Baja | 1 |
-| 2 | MEDIUM | Media | 2 |
-| 3 | HIGH | Alta | 3 |
-
 ## 🔒 Seguridad
 
 - Contraseñas hasheadas con bcrypt
@@ -170,4 +143,4 @@ Todas las rutas requieren autenticación (Header: `Authorization: Bearer <token>
 
 ## 👤 Autor
 
-Jorge Rafael Rosero - Proyecto de aprendizaje Go
+Jorge Rafael Rosero - Plantilla Base
