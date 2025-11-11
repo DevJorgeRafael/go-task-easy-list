@@ -128,8 +128,6 @@ Todas las rutas requieren autenticación (Header: `Authorization: Bearer <token>
 | GET | `/api/tasks/{id}` | Obtener tarea por ID |
 | PUT | `/api/tasks/{id}` | Actualizar tarea |
 | DELETE | `/api/tasks/{id}` | Eliminar tarea |
-| GET | `/api/tasks/by-status/{statusId}` | Filtrar por estado *(próximamente)* |
-| GET | `/api/tasks/by-priority/{priorityId}` | Filtrar por prioridad *(próximamente)* |
 
 
 ## 🔒 Seguridad
